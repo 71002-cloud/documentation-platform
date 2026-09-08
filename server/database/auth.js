@@ -52,16 +52,10 @@ const getUserByToken = async (token) => {
     }
 
     try {
-        // Try the common call signature; support both string and object forms
-        let result = await supabase.auth.getUser(token);
-
-        if ((!result || !result.data || !result.data.user) && typeof token === 'string') {
-            // Some versions expect an object with access_token
-            result = await supabase.auth.getUser({ access_token: token });
-        }
+        const result = await supabase.auth.getUser(token);
 
         if (!result || result.error || !result.data?.user) {
-            console.log('No auth user found or error:', result?.error);
+            console.log('Token is invalid or expired.');
             return null;
         }
 
@@ -69,9 +63,14 @@ const getUserByToken = async (token) => {
         console.log('Auth user from token:', authUser.id);
 
         const profile = await getUserById(authUser.id);
+        console.log('Profile fetched for user:', profile);
         return profile;
     } catch (err) {
-        console.error('getUserByToken error:', err);
+        if (err.status === 401 || err.code === 'no_authorization') {
+            console.log('Token is invalid or expired.');
+        } else {
+            console.error('getUserByToken error:', err.message);
+        }
         return null;
     }
 }
@@ -97,7 +96,9 @@ const loginUser = async (email, password) => {
         throw new Error(`Error logging in user: ${error.message}`);
     }
 
-    return data;
+    const profile = await getUserById(data.user.id);
+
+    return { ...data, userInfo: profile };
 };
 
 module.exports = { getUserByEmail, getUserByToken, getUserById, loginUser };

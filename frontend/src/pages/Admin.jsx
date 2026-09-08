@@ -1,12 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createUser, deleteUser } from '../api/admin.js';
+import { useNavigate } from 'react-router-dom';
 
 export default function Admin() {
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
     const [role, setRole] = useState('');
     const [userId, setUserId] = useState('');
+
+    useEffect(() => {
+        sessionStorage.getItem('user') || navigate('/');
+        if (sessionStorage.getItem('user') && JSON.parse(sessionStorage.getItem('user')).role !== 'admin') {
+            console.log(sessionStorage.getItem('user'));
+            navigate('/');
+        }
+    }, []);
 
     const handleDeleteUser = async (event) => {
         event.preventDefault();

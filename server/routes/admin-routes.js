@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { createUser, deleteUser } = require('../database/admin.js');
 const { checkPermission } = require('../middleware/permison-tjek.js');
+const { rateLimiter } = require('../middleware/rate-limiter.js');
 
-router.post('/create-user', async (req, res) => {
+router.post('/create-user', rateLimiter(2), async (req, res) => {
     const { email, password, name, role } = req.body;
 
     // Check if the user has the required permission
@@ -25,7 +26,7 @@ router.post('/create-user', async (req, res) => {
 
 });
 
-router.post('/delete-user', async (req, res) => {
+router.post('/delete-user', rateLimiter(2), async (req, res) => {
     const { userId } = req.body;
 
     console.log(`Attempting to delete user with ID: ${userId}`);
