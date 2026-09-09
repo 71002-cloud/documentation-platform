@@ -2,12 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { checkPermission } = require('../middleware/permison-tjek.js');
 const { createProject, getProjectIdByMemberId, getProjectsByIds} = require('../database/project.js');
-const { getUserByToken } = require('../database/auth.js');
 const { rateLimiter } = require('../middleware/rate-limiter.js');
 
 router.post('/create', rateLimiter(5), async (req, res) => {
-    const hasPermission = await checkPermission('user', req.headers.authorization);
-    if (!hasPermission) {
+    const { allowed, user } = await checkPermission('user', req.headers.authorization);
+    if (!allowed) {
         return res.status(403).json({ error: 'Login is required to create a project' });
     }
 
@@ -16,8 +15,6 @@ router.post('/create', rateLimiter(5), async (req, res) => {
         return res.status(400).json({ error: 'Project name is required' });
     }
 
-    const userToken = req.headers.authorization.split(' ')[1];
-    const user = await getUserByToken(userToken);
     if (!user || !user.id) {
         return res.status(401).json({ error: 'Invalid or expired user session' });
     }
@@ -33,22 +30,15 @@ router.post('/create', rateLimiter(5), async (req, res) => {
 });
 
 router.get('/', rateLimiter(5), async (req, res) => {
-    const hasPermission = await checkPermission('user', req.headers.authorization);
-    if (!hasPermission) {
+    const { allowed, user } = await checkPermission('user', req.headers.authorization);
+    if (!allowed) {
         return res.status(403).json({ error: 'Login is required to view projects' });
     }
 
-    const user = await getUserByToken(req.headers.authorization.split(' ')[1])
-        .then((user) => {
-            if (!user || !user.id) {
-                return res.status(401).json({ error: 'Invalid or expired user session' });
-            }
-            return user;
-        })
-        .catch((error) => {
-            console.error('Error fetching user:', error);
-            return res.status(500).json({ error: 'Failed to fetch user' });
-        });
+    if (!user || !user.id) {
+        return res.status(401).json({ error: 'Invalid or expired user session' });
+    }
+
     const projectIds = await getProjectIdByMemberId(user.id);
 
     const projects = await getProjectsByIds(projectIds.map((p) => p.project_id));

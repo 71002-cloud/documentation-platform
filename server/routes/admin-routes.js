@@ -8,8 +8,8 @@ router.post('/create-user', rateLimiter(2), async (req, res) => {
     const { email, password, name, role } = req.body;
 
     // Check if the user has the required permission
-    const hasPermission = await checkPermission('admin', req.headers.authorization);
-    if (!hasPermission) {
+    const { allowed } = await checkPermission('admin', req.headers.authorization);
+    if (!allowed) {
         return res.status(403).json({
             success: false,
             message: 'Insufficient permissions to create user'
@@ -28,13 +28,9 @@ router.post('/create-user', rateLimiter(2), async (req, res) => {
 
 router.post('/delete-user', rateLimiter(2), async (req, res) => {
     const { userId } = req.body;
-
-    console.log(`Attempting to delete user with ID: ${userId}`);
-    console.log(`Authorization header: ${req.headers.authorization}`);
-
     // Check if the user has the required permission
-    const hasPermission = await checkPermission('admin', req.headers.authorization);
-    if (!hasPermission) {
+    const { allowed } = await checkPermission('admin', req.headers.authorization);
+    if (!allowed) {
         return res.status(403).json({
             success: false,
             message: 'Insufficient permissions to delete user'
