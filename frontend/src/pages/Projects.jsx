@@ -40,8 +40,18 @@ export default function Projects() {
 
   }, [0]);
 
+  const handleOnclickProject = (projectId) => {
+    const currentProjectId = projectId;
+    sessionStorage.setItem('currentProjectId', currentProjectId);
+    const currentProject = projects.find(project => project.project_id === currentProjectId);
+    if (currentProject) {
+      sessionStorage.setItem('currentProject', JSON.stringify(currentProject));
+    }
+    navigate(`/projects/${projectId}`);
+  }
+
   const projectsDisplay = projects.map((project) => (
-    <div key={project.project_id} className="project-card" style={{ border: '1px solid black', padding: '10px', margin: '10px', width: '300px', cursor: 'pointer' }}>
+    <div key={project.project_id} className="project-card" onClick={() => handleOnclickProject(project.project_id)} style={{ border: '1px solid black', padding: '10px', margin: '10px', width: '300px', cursor: 'pointer' }}>
       <h3>{project.name}</h3>
       <p>{project.description}</p>
     </div>

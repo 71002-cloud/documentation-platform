@@ -19,6 +19,28 @@ const addMemberToProject = async (projectId, userId, role) => {
     .single();
 };
 
+const removeMemberFromProject = async (projectId, userId) => {
+    if (!projectId || !userId) {
+        throw new Error('Project ID and user ID are required to remove a member from a project.');
+    }
+
+    const supabase = getSupabase();
+
+    if (!supabase) {
+        throw new Error('Supabase client is not initialized. Please check your environment variables.');
+    }
+
+    const { error } = await supabase
+    .from('projectmembers')
+    .delete()
+    .eq('project_id', projectId)
+    .eq('user_id', userId);
+
+    if (error) {
+        throw new Error(`Error removing member from project: ${error.message}`);
+    }
+};
+
 const getProjectIdByMemberId = async (userId) => {
     const supabase = getSupabase();
     if (!supabase) {
@@ -115,6 +137,27 @@ const getProjectsIdByMemberId = async (userId) => {
     return data;
 };
 
+const getAProjectByMemberId = async (userId, projectId) => {
+    const supabase = getSupabase();
+    if (!supabase) {
+        throw new Error('Supabase client is not initialized. Please check your environment variables.');
+    }
+    const { data, error } = await supabase
+    .from('projectmembers')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('project_id', projectId)
+    .limit(1)
+    .single();
+
+    if (error) {
+        throw new Error(`Error fetching project by member ID: ${error.message}`);
+    }
+
+    console.log('Fetched project by member ID:', data);
+    return data;
+};
+
 const createProject = async (name, description, userId) => {
     if (!name || !userId) {
         throw new Error('Project name and user ID are required to create a project.');
@@ -159,4 +202,71 @@ const createProject = async (name, description, userId) => {
     return data;
 };
 
-module.exports = { getProjectById, getProjectsByOwnerId, getProjectsIdByMemberId, createProject, addMemberToProject, getProjectIdByMemberId, getProjectsByIds };
+const deleteProject = async (projectId) => {
+    if (!projectId) {
+        throw new Error('Project ID is required to delete a project.');
+    }
+    const supabase = getSupabase();
+
+    if (!supabase) {
+        throw new Error('Supabase client is not initialized. Please check your environment variables.');
+    }
+
+    const { error } = await supabase
+    .from('projects')
+    .delete()
+    .eq('project_id', projectId);
+
+    if (error) {
+        throw new Error(`Error deleting project: ${error.message}`);
+    }
+
+    return {
+        success: true,
+        message: 'Project deleted successfully'
+    };
+};
+
+const getProjectMembersByProjectId = async (projectId) => {
+    if (!projectId) {
+        throw new Error('Project ID is required to fetch project members.');
+    }
+
+    const supabase = getSupabase();
+
+    if (!supabase) {
+        throw new Error('Supabase client is not initialized. Please check your environment variables.');
+    }
+
+    const { data: members, error } = await supabase
+        .from('projectmembers')
+        .select('*')
+        .eq('project_id', projectId);
+
+    if (error) {
+        throw new Error(`Error fetching project members: ${error.message}`);
+    }
+
+    if (members.length === 0) {
+        return [];
+    }
+
+    const userIds = members.map((member) => member.user_id);
+    const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, name')
+        .in('id', userIds);
+
+    if (usersError) {
+        throw new Error(`Error fetching member names: ${usersError.message}`);
+    }
+
+    const usersById = new Map(users.map((user) => [user.id, user]));
+
+    return members.map((member) => ({
+        ...member,
+        name: usersById.get(member.user_id)?.name ?? null
+    }));
+};
+
+module.exports = { getProjectById, getProjectsByOwnerId, getProjectsIdByMemberId, createProject, addMemberToProject, getProjectIdByMemberId, getProjectsByIds, deleteProject, removeMemberFromProject, getAProjectByMemberId, getProjectMembersByProjectId };
