@@ -1,11 +1,12 @@
 const { getSupabase } = require('./supabase.js');
 
-const addMemberToProject = async (projectId, userId, role) => {
-    if (!projectId || !userId || !role) {
-        throw new Error('Project ID, user ID, and role are required to add a member to a project.');
+const addMemberToProjectByUserId = async (projectId, name, role) => {
+    if (!projectId || !name || !role) {
+        throw new Error('Project ID, user name, and role are required to add a member to a project.');
     }
-    if (!['viewer', 'editor', 'admin'].includes(role)) {
-        throw new Error('Invalid role. Role must be one of: viewer, editor, admin.');
+    const roleLowerCase = role.toLowerCase();
+    if (!['viewer', 'editor', 'owner'].includes(roleLowerCase)) {
+        throw new Error('Invalid role. Role must be one of: viewer, editor, owner.');
     }
     const supabase = getSupabase();
 
@@ -13,10 +14,32 @@ const addMemberToProject = async (projectId, userId, role) => {
         throw new Error('Supabase client is not initialized. Please check your environment variables.');
     }
 
+    const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('name', name)
+        .single();
+    
+    if (userError) {
+        throw new Error(`Error fetching user data: ${userError.message}`);
+    }
+
+    if (!userData || !userData.id) {
+        throw new Error('User not found.');
+    }
+    const userId = userData.id;
+
     const { data, error } = await supabase
-    .from('projectmembers')
-    .insert([{ project_id: projectId, user_id: userId, role: role}])
-    .single();
+        .from('projectmembers')
+        .insert([{ project_id: projectId, user_id: userId, role: role }])
+        .select()
+        .single();
+
+    if (error) {
+        throw new Error(`Error adding member to project: ${error.message}`);
+    }
+
+    return data;
 };
 
 const removeMemberFromProject = async (projectId, userId) => {
@@ -39,6 +62,11 @@ const removeMemberFromProject = async (projectId, userId) => {
     if (error) {
         throw new Error(`Error removing member from project: ${error.message}`);
     }
+
+    return {
+        success: true,
+        message: 'Member removed successfully'
+    };
 };
 
 const getProjectIdByMemberId = async (userId) => {
@@ -269,4 +297,4 @@ const getProjectMembersByProjectId = async (projectId) => {
     }));
 };
 
-module.exports = { getProjectById, getProjectsByOwnerId, getProjectsIdByMemberId, createProject, addMemberToProject, getProjectIdByMemberId, getProjectsByIds, deleteProject, removeMemberFromProject, getAProjectByMemberId, getProjectMembersByProjectId };
+module.exports = { getProjectById, getProjectsByOwnerId, getProjectsIdByMemberId, createProject, addMemberToProjectByUserId, getProjectIdByMemberId, getProjectsByIds, deleteProject, removeMemberFromProject, getAProjectByMemberId, getProjectMembersByProjectId };

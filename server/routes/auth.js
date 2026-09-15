@@ -14,6 +14,7 @@ router.post('/login', rateLimiter(5), async (req, res) => {
         res.json({ success: true, message: 'Login successful', 
             token: user.session.access_token,
             user: {
+            id: user.userInfo.id,
             email: user.user.email,
             name: user.userInfo.name,
             role: user.userInfo.role

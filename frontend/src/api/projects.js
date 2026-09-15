@@ -42,6 +42,10 @@ export async function deleteProject(projectId) {
     });
 
     const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || 'Failed to remove member');
+    }
+
     return result;
 }
 
@@ -60,12 +64,16 @@ export async function removeMemberFromProject(projectId, userId) {
     });
 
     const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || 'Failed to add member');
+    }
+
     return result;
 }
 
-export async function addMemberToProject(projectId, userId) {
-    if (!projectId || !userId) {
-        throw new Error('Project ID and User ID are required to add a member to a project');
+export async function addMemberToProject(projectId, name, role) {
+    if (!projectId || !name || !role) {
+        throw new Error('Project ID, User Name, and User Role are required to add a member to a project');
     }
 
     const response = await fetch(`http://localhost:5000/api/projects/add-member`, {
@@ -74,7 +82,7 @@ export async function addMemberToProject(projectId, userId) {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${sessionStorage.getItem('token')}`,
         },
-        body: JSON.stringify({ projectId, userId }),
+        body: JSON.stringify({ projectId, name, role }),
     });
 
     const result = await response.json();

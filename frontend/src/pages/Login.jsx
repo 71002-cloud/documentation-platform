@@ -19,7 +19,7 @@ export default function Login() {
         const response = await login(email.value, password.value);
         
         sessionStorage.setItem('token', response.token);
-        const user = {role: response.user.role, name: response.user.name};
+        const user = { id: response.user.id, role: response.user.role, name: response.user.name };
         sessionStorage.setItem('user', JSON.stringify(user));
         console.log(sessionStorage.getItem('user'));
         if (response.success) {

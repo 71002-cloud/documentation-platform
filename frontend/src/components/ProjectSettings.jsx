@@ -4,11 +4,16 @@ import { useState, useEffect } from "react";
 
 export default function ProjectSettings(props) {
     const [members, setMembers] = useState([]);
+    const [addMemberFormVisible, setAddMemberFormVisible] = useState(false);
+    const [newMemberName, setNewMemberName] = useState('');
+    const [newMemberRole, setNewMemberRole] = useState('viewer');
     const navigate = useNavigate();
+    const currentUser = JSON.parse(sessionStorage.getItem('user') || 'null');
 
     useEffect(() => {
         const fetchMembers = async () => {
             try {
+                console.log('Fetching members for project ID:', props.project.project_id);
                 const membersList = await getProjectMembers(props.project.project_id);
                 setMembers(membersList);
             } catch (error) {
@@ -18,10 +23,28 @@ export default function ProjectSettings(props) {
         fetchMembers();
     }, [props.project.project_id]);
 
-    console.log('Project members:', members);
+    const currentUserIsOwner = members.some((member) => (
+        member.user_id === currentUser?.id && member.role === 'owner'
+    ));
+
+    const handleRemoveMember = async (userId) => {
+        if (window.confirm("Are you sure you want to remove this member from the project?")) {
+            try {
+                console.log('Removing member with user ID:', userId, 'from project ID:', props.project.project_id);
+                await removeMemberFromProject(props.project.project_id, userId);
+                setMembers(members.filter(member => member.user_id !== userId));
+            } catch (error) {
+                console.error('Error removing member from project:', error);
+            }
+        }
+    };
+
     const displayMembers = members.map((member) => (
         <li key={member.user_id}>
             {member.name} - Role: {member.role}
+            {currentUserIsOwner && member.role !== 'owner' && (
+                <button onClick={() => handleRemoveMember(member.user_id)}>Remove</button>
+            )}
         </li>
     ));
 
@@ -41,6 +64,32 @@ export default function ProjectSettings(props) {
         }
     }
 
+    const handleAddMember = async () => {
+        if (newMemberName.trim() === '') {
+            alert('Member name cannot be empty.');
+            return;
+        }
+        if (newMemberRole !== 'viewer' && newMemberRole !== 'editor') {
+            alert('Invalid role selected. Please choose either "viewer" or "editor".');
+            return;
+        }
+
+        try {
+            console.log('Adding member to project ID:', props.project.project_id, 'Name:', newMemberName, 'Role:', newMemberRole);
+            const result = await addMemberToProject(props.project.project_id, newMemberName, newMemberRole);
+            console.log('Member added:', result);
+            setMembers((currentMembers) => [
+                ...currentMembers,
+                { ...result, name: newMemberName }
+            ]);
+            setNewMemberName('');
+            setNewMemberRole('viewer');
+            setAddMemberFormVisible(false);
+        } catch (error) {
+            console.error('Error adding member to project:', error);
+        }
+    }
+
     return (
         <div>
             <h2>Project Settings for {props.project.name}</h2>
@@ -50,12 +99,30 @@ export default function ProjectSettings(props) {
                     {displayMembers}
                 </ul>
             </div>
-            <button> Add Member</button>
+            {currentUserIsOwner && (addMemberFormVisible ? (
+                <div>
+                    <p>Add a new member to the project:</p>
+                    <form onSubmit={(e) => { e.preventDefault(); handleAddMember(); }}>
+                        <input type="text" placeholder="Joe" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} />
+                        <select value={newMemberRole} onChange={(e) => setNewMemberRole(e.target.value)}>
+                            <option value="viewer">Viewer</option>
+                            <option value="editor">Editor</option>
+                        </select>
+                        <button type="submit">Add Member</button>
+                    </form>
+                </div>
+            ) : (
+                <button onClick={() => setAddMemberFormVisible(true)}>Add Member</button>
+            ))}
 
             <p>Project Description: {props.project.description}</p>
 
-            <h3>Danger zone </h3>
-            <button onClick={handleDeleteProject}>Delete Project</button>
+            {currentUserIsOwner && (
+                <div>
+                    <h3>Danger zone</h3>
+                    <button onClick={handleDeleteProject}>Delete Project</button>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { checkPermission, isMemberOfProject } = require('../middleware/permison-tjek.js');
-const { createProject, getProjectIdByMemberId, getProjectsByIds, deleteProject, addMemberToProject, removeMemberFromProject, getProjectMembersByProjectId} = require('../database/project.js');
+const { createProject, getProjectIdByMemberId, getProjectsByIds, deleteProject, addMemberToProjectByUserId, removeMemberFromProject, getProjectMembersByProjectId} = require('../database/project.js');
 const { rateLimiter } = require('../middleware/rate-limiter.js');
 
 router.post('/create', rateLimiter(5), async (req, res) => {
@@ -110,9 +110,9 @@ router.post('/add-member', rateLimiter(5), async (req, res) => {
         return res.status(403).json({ error: 'Login is required to add a member to a project' });
     }
 
-    const { projectId, userId } = req.body;
-    if (!projectId || !userId) {
-        return res.status(400).json({ error: 'Project ID and User ID are required to add a member to a project' });
+    const { projectId, name, role } = req.body;
+    if (!projectId || !name || !role) {
+        return res.status(400).json({ error: 'Project ID, User Name, and User Role are required to add a member to a project' });
     }
 
     if (!user || !user.id) {
@@ -124,8 +124,14 @@ router.post('/add-member', rateLimiter(5), async (req, res) => {
         return res.status(403).json({ error: 'You are not the owner of this project' });
     }
 
+    const validRoles = ['viewer', 'editor', 'owner'];
+    const roleLowerCase = role.toLowerCase();
+    if (!validRoles.includes(roleLowerCase)) {
+        return res.status(400).json({ error: `Invalid role. Role must be one of: ${validRoles.join(', ')}` });
+    }
+
     try {
-        const result = await addMemberToProject(projectId, userId);
+        const result = await addMemberToProjectByUserId(projectId, name, roleLowerCase);
         res.status(200).json(result);
     } catch (error) {
         console.error('Error adding member to project:', error);
