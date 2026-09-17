@@ -1,14 +1,16 @@
 export default function TableOfContents(props) {
-    const documententTitles = props.documententTitles || [];
-    const displayTitles = documententTitles.map((title, index) => (
-        <li key={index}>{title}</li>
+    const mappedDocuments = props.documentsInfo.map((document) => (
+        <li key={document.document_id} onClick={() => props.onDocumentClick(document.document_id)}>
+            {document.title}
+        </li>
     ));
 
     return (
         <div>
             <h2>Table of Contents</h2>
             <ul>
-                {displayTitles}
+                {mappedDocuments}
+                <p onClick={() => props.onCreateDocument(props.documentsInfo.length === 0 ? 0 :props.documentsInfo.length)}>+ new document</p>
             </ul>
         </div>
     );

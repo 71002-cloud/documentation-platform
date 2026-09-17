@@ -3,6 +3,7 @@ const router = express.Router();
 const { checkPermission, isMemberOfProject } = require('../middleware/permison-tjek.js');
 const { createProject, getProjectIdByMemberId, getProjectsByIds, deleteProject, addMemberToProjectByUserId, removeMemberFromProject, getProjectMembersByProjectId} = require('../database/project.js');
 const { rateLimiter } = require('../middleware/rate-limiter.js');
+const { getAllDocumentsTitleByProjectId, getDocumentById, createDocument, updateDocument, deleteDocument,  } = require('../database/documents.js');
 
 router.post('/create', rateLimiter(5), async (req, res) => {
     const { allowed, user } = await checkPermission('user', req.headers.authorization);
@@ -166,6 +167,105 @@ router.get('/members', rateLimiter(5), async (req, res) => {
     } catch (error) {
         console.error('Error fetching project members:', error);
         res.status(500).json({ error: 'Failed to fetch project members' });
+    }
+});
+
+router.get('/documents', rateLimiter(5), async (req, res) => {
+    const { allowed, user } = await checkPermission('user', req.headers.authorization);
+    if (!allowed) {
+        return res.status(403).json({ error: 'Login is required to fetch project documents' });
+    }
+
+    if (!req.query.projectId) {
+        return res.status(400).json({ error: 'Project ID is required to fetch project documents' });
+    }
+
+    const {allowed: isMember, project} = await isMemberOfProject(user.id, req.query.projectId, 'viewer');
+    if (!isMember) {
+        return res.status(403).json({ error: 'You are not a member of this project' });
+    }
+
+    try {
+        const documents = await getAllDocumentsTitleByProjectId(req.query.projectId);
+        res.status(200).json(documents);
+    } catch (error) {
+        console.error('Error fetching project documents:', error);
+        res.status(500).json({ error: 'Failed to fetch project documents' });
+    }
+});
+
+router.get('/document', rateLimiter(5), async (req, res) => {
+    const { allowed, user } = await checkPermission('user', req.headers.authorization);
+    if (!allowed) {
+        return res.status(403).json({ error: 'Login is required to fetch a document' });
+    }
+
+    if (!req.query.projectId || !req.query.documentId) {
+        return res.status(400).json({ error: 'Project ID and Document ID are required to fetch a document' });
+    }
+
+    const {allowed: isMember, project} = await isMemberOfProject(user.id, req.query.projectId, 'viewer');
+    if (!isMember) {
+        return res.status(403).json({ error: 'You are not a member of this project' });
+    }
+
+    try {
+        const document = await getDocumentById(req.query.documentId);
+        res.status(200).json(document);
+    } catch (error) {
+        console.error('Error fetching document:', error);
+        res.status(500).json({ error: 'Failed to fetch document' });
+    }
+});
+
+router.post('/create-document', rateLimiter(5), async (req, res) => {
+    const { allowed, user } = await checkPermission('user', req.headers.authorization);
+    if (!allowed) {
+        return res.status(403).json({ error: 'Login is required to create a document' });
+    }
+
+    if (!req.body.projectId || req.body.order_index === undefined || req.body.order_index === null) {
+        return res.status(400).json({ error: 'Project ID and order index are required to create a document' });
+    }
+
+    const {allowed: isMember, project} = await isMemberOfProject(user.id, req.body.projectId, 'editor');
+    if (!isMember) {
+        return res.status(403).json({ error: 'You do not have permission to create a document in this project' });
+    }
+
+    try {
+        const document = await createDocument(req.body.projectId, req.body.order_index);
+        res.status(201).json(document);
+    } catch (error) {
+        console.error('Error creating document:', error);
+        res.status(500).json({ error: 'Failed to create document' });
+    }
+
+});
+
+router.post('/document', rateLimiter(5), async (req, res) => {
+    const { allowed, user } = await checkPermission('user', req.headers.authorization);
+    if (!allowed) {
+        return res.status(403).json({ error: 'Login is required to update a document' });
+    }
+
+    console.log('Request body:', req.body);
+
+    if (!req.body.projectId || !req.body.documentId || !req.body.title || !req.body.content) {
+        return res.status(400).json({ error: 'Project ID, Document ID, title, and content are required to update a document' });
+    }
+
+    const {allowed: isMember, project} = await isMemberOfProject(user.id, req.body.projectId, 'editor');
+    if (!isMember) {
+        return res.status(403).json({ error: 'You do not have permission to update a document in this project' });
+    }
+
+    try {
+        const document = await updateDocument(req.body.documentId, req.body.title, req.body.content);
+        res.status(200).json(document);
+    } catch (error) {
+        console.error('Error updating document:', error);
+        res.status(500).json({ error: 'Failed to update document' });
     }
 });
 

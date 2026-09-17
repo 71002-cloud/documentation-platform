@@ -15,7 +15,15 @@ export default function ProjectHeader(props) {
             <h1>Project Header</h1>
             <button onClick={handleSettingsClick}>Settings</button>
             <button onClick={() => navigate('/projects')}>Back to Projects</button>
-            {showSettings && <ProjectSettings project={props.project} />}
+            {showSettings && (
+                <ProjectSettings
+                    project={props.project}
+                    currentUser={props.currentUser}
+                    currentUserIsOwner={props.currentUserIsOwner}
+                    members={props.members}
+                    setMembers={props.setMembers}
+                />
+            )}
         </div>
     );
 }

@@ -1,38 +1,20 @@
-import { deleteProject, removeMemberFromProject, addMemberToProject, getProjectMembers} from "../api/projects";
+import { deleteProject, removeMemberFromProject, addMemberToProject } from "../api/projects";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function ProjectSettings(props) {
-    const [members, setMembers] = useState([]);
     const [addMemberFormVisible, setAddMemberFormVisible] = useState(false);
     const [newMemberName, setNewMemberName] = useState('');
     const [newMemberRole, setNewMemberRole] = useState('viewer');
     const navigate = useNavigate();
-    const currentUser = JSON.parse(sessionStorage.getItem('user') || 'null');
-
-    useEffect(() => {
-        const fetchMembers = async () => {
-            try {
-                console.log('Fetching members for project ID:', props.project.project_id);
-                const membersList = await getProjectMembers(props.project.project_id);
-                setMembers(membersList);
-            } catch (error) {
-                console.error('Error fetching project members:', error);
-            }
-        };
-        fetchMembers();
-    }, [props.project.project_id]);
-
-    const currentUserIsOwner = members.some((member) => (
-        member.user_id === currentUser?.id && member.role === 'owner'
-    ));
+    const { members, setMembers, currentUserIsOwner } = props;
 
     const handleRemoveMember = async (userId) => {
         if (window.confirm("Are you sure you want to remove this member from the project?")) {
             try {
                 console.log('Removing member with user ID:', userId, 'from project ID:', props.project.project_id);
                 await removeMemberFromProject(props.project.project_id, userId);
-                setMembers(members.filter(member => member.user_id !== userId));
+                setMembers((currentMembers) => currentMembers.filter((member) => member.user_id !== userId));
             } catch (error) {
                 console.error('Error removing member from project:', error);
             }

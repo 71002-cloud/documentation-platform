@@ -13,6 +13,8 @@ export default function CreateProject() {
         try {
             const project = await createProject(projectName, projectDescription);
             console.log('Project created:', project);
+            sessionStorage.setItem('currentProjectId', project.project_id);
+            sessionStorage.setItem('currentProject', JSON.stringify(project));
             navigate(`/projects/${project.id}`);
         } catch (error) {
             console.error('Error creating project:', error);

@@ -105,3 +105,77 @@ export async function getProjectMembers(projectId) {
     const members = await response.json();
     return members;
 }
+
+export async function getProjectDocuments(projectId) {
+    if (!projectId) {
+        throw new Error('Project ID is required to get project documents');
+    }
+
+    const response = await fetch(`http://localhost:5000/api/projects/documents?projectId=${projectId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sessionStorage.getItem('token')}`,
+        },
+    });
+
+    const documents = await response.json();
+    return documents;
+}
+
+export async function getDocument(projectId, documentId) {
+    if (!projectId || !documentId) {
+        throw new Error('Project ID and Document ID are required to get a document');
+    }
+
+    const params = new URLSearchParams({ projectId, documentId });
+    const response = await fetch(`http://localhost:5000/api/projects/document?${params}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sessionStorage.getItem('token')}`,
+        },
+    });
+    const document = await response.json();
+    return document;
+}
+
+export const createDocument = async (projectId, order_index) => {
+    if (!projectId || order_index === undefined) {
+        throw new Error('Project ID, and order index are required to create a document');
+    }
+
+    const response = await fetch(`http://localhost:5000/api/projects/create-document`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sessionStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ projectId, order_index }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || 'Failed to create document');
+    }
+    return result;
+}
+
+export const updateDocument = async (projectId, documentId, title, content) => {
+    if (!documentId || !title || content === undefined || !projectId) {
+        throw new Error('Document ID, title, content, and project ID are required to update a document');
+    }
+
+    const response = await fetch(`http://localhost:5000/api/projects/document`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sessionStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ projectId, documentId, title, content }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || 'Failed to update document');
+    }
+    return result;
+}
