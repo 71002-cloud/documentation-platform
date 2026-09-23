@@ -92,7 +92,7 @@ const updateDocument = async (document_id, title, content) => {
     return data;
 }
 
-const deleteDocument = async (document_id) => {
+const deleteDocument = async (document_id, project_id) => {
     if (!document_id) {
         throw new Error('Document ID is required to delete a document.');
     }
@@ -106,6 +106,7 @@ const deleteDocument = async (document_id) => {
         .from('documents')
         .delete()
         .eq('document_id', document_id)
+        .eq('project_id', project_id)
         .select()
         .single();
 

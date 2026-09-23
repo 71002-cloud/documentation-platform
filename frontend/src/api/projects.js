@@ -179,3 +179,23 @@ export const updateDocument = async (projectId, documentId, title, content) => {
     }
     return result;
 }
+
+export const deleteDocument = async (projectId, documentId) => {
+    if (!projectId || !documentId) {
+        throw new Error('Project ID and Document ID are required to delete a document');
+    }
+
+    const response = await fetch(`http://localhost:5000/api/projects/delete-document`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sessionStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ projectId, documentId }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete document');
+    }
+    return result;
+}

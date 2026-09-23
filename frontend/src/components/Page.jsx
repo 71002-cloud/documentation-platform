@@ -2,6 +2,19 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useEffect, useState } from 'react';
 
+const emptyDocument = {
+    type: 'doc',
+    content: [
+        {
+            type: 'paragraph',
+            content: [{
+                type: 'text',
+                text: 'write here...'
+            }]
+        },
+    ],
+};
+
 export default function Page(props) {
     console.log('Page props:', props);
     const [title, setTitle] = useState(props.content?.title ?? '');
@@ -9,18 +22,7 @@ export default function Page(props) {
         extensions: [
             StarterKit,
         ],
-        content: props.content.content || {
-            type: 'doc',
-            content: [
-                {
-                    type: 'paragraph',
-                    content: [{
-                        type: 'text',
-                        text: 'write here...'
-                    }]
-                },
-            ],
-        },
+        content: props.content?.content || emptyDocument,
         editable: props.editormode
     });
 
@@ -35,10 +37,14 @@ export default function Page(props) {
     }, [props.content]);
 
     useEffect(() => {
-        if (editor && props.content?.content) {
-            editor.commands.setContent(props.content.content, false);
+        if (
+            editor &&
+            props.content?.document_id &&
+            props.content.document_id === props.selectedDocumentId
+        ) {
+            editor.commands.setContent(props.content.content || emptyDocument, false);
         }
-    }, [editor, props.content?.document_id, props.content?.content]);
+    }, [editor, props.content, props.selectedDocumentId]);
 
     const handleContentUpdate = () => {
         if (editor) {
@@ -49,6 +55,12 @@ export default function Page(props) {
         }
     };
 
+    const handleDeleteDocument = () => {
+        if (window.confirm('Are you sure you want to delete this document?')) {
+            props.onDeleteDocument(props.content.document_id);
+        }
+    };
+
     return (
         <div>
             {props.selectedDocumentId ? <div>
@@ -56,6 +68,7 @@ export default function Page(props) {
             {props.editormode && <div>
                 <button onClick={props.onToggleEditor}>View</button>
                 <button onClick={() => handleContentUpdate()}>Save</button>
+                <button onClick={() => handleDeleteDocument()}>Delete</button>
             </div>}
             {!props.editormode && <div>
                 <h2>{title}</h2>

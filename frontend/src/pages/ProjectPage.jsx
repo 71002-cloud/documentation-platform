@@ -4,7 +4,7 @@ import Page from "../components/Page";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { getProjectDocuments, getDocument, createDocument, updateDocument, getProjectMembers } from "../api/projects.js";
+import { getProjectDocuments, getDocument, createDocument, updateDocument, getProjectMembers, deleteDocument } from "../api/projects.js";
 
 export default function ProjectPage() {
     const [currentProjectId, setCurrentProjectId] = useState(sessionStorage.getItem('currentProjectId'));
@@ -103,13 +103,36 @@ export default function ProjectPage() {
         setSelectedDocumentId(newDocument.document_id);
     };
 
-    const handleDocumentUpdate = (updatedDocument) => {
-        updateDocument(updatedDocument.project_id, updatedDocument.document_id, updatedDocument.title, updatedDocument.content);
-        const updatedDocuments = documents.map((doc) =>
-            doc.document_id === updatedDocument.document_id ? updatedDocument : doc
-        );
-        setDocuments(updatedDocuments);
+    const handleDocumentUpdate = async (updatedDocument) => {
+        try {
+            const savedDocument = await updateDocument(
+                updatedDocument.project_id,
+                updatedDocument.document_id,
+                updatedDocument.title,
+                updatedDocument.content
+            );
+            setContent(savedDocument);
+            setDocuments((currentDocuments) => currentDocuments.map((doc) =>
+                doc.document_id === savedDocument.document_id ? savedDocument : doc
+            ));
+        } catch (error) {
+            console.error('Error updating document:', error);
+        }
     }
+
+    const handleDocumentDelete = async (documentId) => {
+        try {
+            await deleteDocument(currentProjectId, documentId);
+            const updatedDocuments = documents.filter((doc) => doc.document_id !== documentId);
+            setDocuments(updatedDocuments);
+            if (selectedDocumentId === documentId) {
+                setSelectedDocumentId(null);
+                setContent(null);
+            }
+        } catch (error) {
+            console.error('Error deleting document:', error);
+        }
+    };
 
     const handleToggleEditor = () => {
         console.log('Toggling editor mode. Current state:', editormode);
@@ -135,6 +158,7 @@ export default function ProjectPage() {
                     currentUserHasEditPermission={currentUserHasEditPermission}
                     editormode={editormode}
                     onToggleEditor={handleToggleEditor}
+                    onDeleteDocument={handleDocumentDelete}
                 />
             </div>
         </div>

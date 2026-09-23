@@ -269,4 +269,28 @@ router.post('/document', rateLimiter(5), async (req, res) => {
     }
 });
 
+router.post('/delete-document', rateLimiter(5), async (req, res) => {
+    const { allowed, user } = await checkPermission('user', req.headers.authorization);
+    if (!allowed) {
+        return res.status(403).json({ error: 'Login is required to delete a document' });
+    }
+
+    if (!req.body.projectId || !req.body.documentId) {
+        return res.status(400).json({ error: 'Project ID and Document ID are required to delete a document' });
+    }
+
+    const {allowed: isMember, project} = await isMemberOfProject(user.id, req.body.projectId, 'editor');
+    if (!isMember) {
+        return res.status(403).json({ error: 'You do not have permission to delete a document in this project' });
+    }
+
+    try {
+        const result = await deleteDocument(req.body.documentId, req.body.projectId);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        res.status(500).json({ error: 'Failed to delete document' });
+    }
+});
+
 module.exports = router;
